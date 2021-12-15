@@ -3,11 +3,17 @@ uuid = "f386ec8f-7408-45ea-aa1c-e80969af901e"
 authors = ["Rashid Rafeek <rashidrafeek@gmail.com> and contributors"]
 version = "0.1.0"
 
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+[deps]
+AtomsBase = "a963bdd2-2df7-4f54-a1ee-49d51e6be12a"
+Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
 julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test"]
