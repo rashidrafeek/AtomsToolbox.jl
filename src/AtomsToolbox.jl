@@ -1,7 +1,9 @@
 module AtomsToolbox
 
 using Distances: pairwise,
+                 euclidean,
                  peuclidean,
+                 Euclidean,
                  PeriodicEuclidean
 using AtomsBase: AbstractSystem,
                  FastSystem,
@@ -9,7 +11,8 @@ using AtomsBase: AbstractSystem,
                  atomic_number,
                  species,
                  bounding_box,
-                 boundary_conditions
+                 boundary_conditions,
+                 periodicity
 using Unitful: ustrip,
                @u_str
 using Graphs: SimpleGraph, 
@@ -28,18 +31,27 @@ export covalent_radii,
 const covalent_radii = [
                         0.31, 0.28, 1.28, 0.96, 0.84, 0.76, 0.71, 0.66, 0.57,
                         0.58, 1.66, 1.41, 1.21, 1.11, 1.07, 1.05, 1.02, 1.06,
-                        2.03, 1.76, 1.7, 1.6, 1.53, 1.39, 1.39, 1.32, 1.26,
-                        1.24, 1.32, 1.22, 1.22, 1.2, 1.19, 1.2, 1.2, 1.16, 2.2,
-                        1.95, 1.9, 1.75, 1.64, 1.54, 1.47, 1.46, 1.42, 1.39,
-                        1.45, 1.44, 1.42, 1.39, 1.39, 1.38, 1.39, 1.4, 2.44,
-                        2.15, 2.07, 2.04, 2.03, 2.01, 1.99, 1.98, 1.98, 1.96,
-                        1.94, 1.92, 1.92, 1.89, 1.9, 1.87, 1.87, 1.75, 1.7,
-                        1.62, 1.51, 1.44, 1.41, 1.36, 1.36, 1.32, 1.45, 1.46,
-                        1.48, 1.4, 1.5, 1.5, 2.6, 2.21, 2.15, 2.06, 2.0, 1.96,
-                        1.9, 1.87, 1.8, 1.69, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
-                        0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
-                        0.2, 0.2, 0.2, 0.2, 0.2
+                        2.03, 1.76, 1.7,  1.6,  1.53, 1.39, 1.39, 1.32, 1.26,
+                        1.24, 1.32, 1.22, 1.22, 1.2,  1.19, 1.2,  1.2,  1.16,
+                        2.2,  1.95, 1.9,  1.75, 1.64, 1.54, 1.47, 1.46, 1.42,
+                        1.39, 1.45, 1.44, 1.42, 1.39, 1.39, 1.38, 1.39, 1.4,
+                        2.44, 2.15, 2.07, 2.04, 2.03, 2.01, 1.99, 1.98, 1.98,
+                        1.96, 1.94, 1.92, 1.92, 1.89, 1.9,  1.87, 1.87, 1.75,
+                        1.7,  1.62, 1.51, 1.44, 1.41, 1.36, 1.36, 1.32, 1.45,
+                        1.46, 1.48, 1.4,  1.5,  1.5,  2.6,  2.21, 2.15, 2.06,
+                        2.0,  1.96, 1.9,  1.87, 1.8,  1.69, 0.2,  0.2,  0.2,
+                        0.2,  0.2,  0.2,  0.2,  0.2,  0.2,  0.2,  0.2,  0.2,
+                        0.2,  0.2,  0.2,  0.2,  0.2,  0.2,  0.2,  0.2,  0.2,
+                        0.2
                        ]
+
+function Base.getindex(system::AbstractSystem, range::AbstractVector)
+    positions = position(system)[range]
+    cell = bounding_box(system)
+    at = species(system)[range]
+
+    typeof(system)(cell, positions, at)
+end
 
 function Base.getindex(system::FastSystem, range::AbstractVector)
     positions = position(system)[range]
@@ -50,9 +62,7 @@ function Base.getindex(system::FastSystem, range::AbstractVector)
     FastSystem(cell, bc, positions, at)
 end
 
-function box_lengths(sys::AbstractSystem)
-    getindex.(bounding_box(sys),[1,2,3])
-end
+box_lengths(sys::AbstractSystem) = getindex.(bounding_box(sys),[1,2,3])
 
 """
     getdistance(system::AbstractSystem, at1, at2)
@@ -62,9 +72,13 @@ Get the distance between atoms with indices `at1` and `at2`.
 function getdistance(system::AbstractSystem, at1, at2)
     pos1 = position(system, at1)
     pos2 = position(system, at2)
-    cell = box_lengths(system)
+    if all(periodicity(system))
+        cell = box_lengths(system)
+        dist = peuclidean(pos1, pos2, cell)
+    else
+        dist = euclidean(pos1, pos2)
+    end
 
-    dist = peuclidean(pos1, pos2, cell)
     return dist
 end
 
@@ -75,10 +89,14 @@ Get the distance matrix between all atoms as an NxN matrix where N is the
 number of atoms in the given `system`.
 """
 function getdistancematrix(system::AbstractSystem)
-    pairwise(
-        PeriodicEuclidean(ustrip.(box_lengths(system))),
-        ustrip.(position(system))
-    )
+    if all(periodicity(system))
+        pairwise(
+            PeriodicEuclidean(ustrip.(box_lengths(system))),
+            ustrip.(position(system))
+        )
+    else
+        pairwise(Euclidean(), ustrip.(position(system)))
+    end
 end
 
 """
@@ -160,11 +178,20 @@ function connectedcomponents(connmat::AbstractMatrix)
 end
 
 """
-    transformpositions(f::Function, system::FastSystem)
+    transformpositions(f::Function, system::AbstractSystem)
 
 Transform positions of the given `system` with `f` and return the transformed
 system.
 """
+function transformpositions(f::Function, system::AbstractSystem)
+    positions = map(f, position(system))
+    cell = bounding_box(system)
+    at = species(system)
+    bc = boundary_conditions(system)
+    
+    typeof(system)(cell, positions, at)
+end
+
 function transformpositions(f::Function, system::FastSystem)
     positions = map(f, position(system))
     cell = bounding_box(system)
@@ -191,6 +218,36 @@ function wrap(system::AbstractSystem)
     )
 
     return transformpositions(f, system)
+end
+
+"""
+    interpolate_systems(sys1::AbstractSystem, sys2::AbstractSystem, nimg::Int)
+
+Do a linear interpolation to obtain `nimg` structures between `sys1` and `sys2`.
+"""
+function interpolate_systems(
+        sys1::AbstractSystem, sys2::AbstractSystem, nimg::Int
+    )
+    pos1 = position(sys1)
+    pos2 = position(sys2)
+    bcs = boundary_conditions(sys1)
+    box = bounding_box(sys1)
+    spec = species(sys1)
+    
+    if !(box == bounding_box(sys2))
+        error("Can't interpolate systems with different cells.")
+    end
+
+    newsystems = Vector{typeof(sys1)}(undef, nimg)
+    posstep = (pos2 .- pos1) / (nimg + 1)
+    for i in 1:nimg
+        newpos = pos1 .+ (i.*posstep)
+        
+        fsystem = FastSystem(box, bcs, newpos, spec)
+        newsystems[i] = convert(typeof(sys1), fsystem)
+    end
+
+    return newsystems
 end
 
 end
