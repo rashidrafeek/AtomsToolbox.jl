@@ -7,9 +7,11 @@ using Distances: pairwise,
                  PeriodicEuclidean
 using AtomsBase: AbstractSystem,
                  FastSystem,
+                 FlexibleSystem,
                  position,
                  atomic_number,
-                 species,
+                 atomic_symbol,
+                 atomic_mass,
                  bounding_box,
                  boundary_conditions,
                  periodicity
@@ -45,21 +47,35 @@ const covalent_radii = [
                         0.2
                        ]
 
+# function Base.getindex(system::AbstractSystem, range::AbstractVector)
+#     positions = position(system)[range]
+#     cell = bounding_box(system)
+#     at = species(system)[range]
+# 
+#     typeof(system)(cell, positions, at)
+# end
+
+"""
+    _getconstructor(s::AbstractSystem)
+
+Get the constructor to construct the concrete type of `s` which is a subtype of
+AbstractSystem
+"""
+_getconstructor(s::AbstractSystem) = error("""
+    No constructor defined. Please define _getconstructor(::$(Base.typename(typeof(s)).name)).
+    """)
+_getconstructor(::FastSystem) = FastSystem
+_getconstructor(::FlexibleSystem) = FlexibleSystem
+
 function Base.getindex(system::AbstractSystem, range::AbstractVector)
-    positions = position(system)[range]
-    cell = bounding_box(system)
-    at = species(system)[range]
-
-    typeof(system)(cell, positions, at)
-end
-
-function Base.getindex(system::FastSystem, range::AbstractVector)
-    positions = position(system)[range]
-    cell = bounding_box(system)
-    at = species(system)[range]
-    bc = boundary_conditions(system)
-
-    FastSystem(cell, bc, positions, at)
+    particles = collect(system)
+    _getconstructor(system)(
+                            particles[range], bounding_box(system), boundary_conditions(system)
+                           )
+    # _getconstructor(system)(
+    #     bounding_box(system), boundary_conditions(system), 
+    #     position(system)[range], atomic_symbol(system)[range],
+    #     atomic_number(system)[range], atomic_mass(system)[range])
 end
 
 box_lengths(sys::AbstractSystem) = getindex.(bounding_box(sys),[1,2,3])
@@ -183,22 +199,23 @@ end
 Transform positions of the given `system` with `f` and return the transformed
 system.
 """
-function transformpositions(f::Function, system::AbstractSystem)
-    positions = map(f, position(system))
-    cell = bounding_box(system)
-    at = species(system)
-    bc = boundary_conditions(system)
-    
-    typeof(system)(cell, positions, at)
-end
-
+# function transformpositions(f::Function, system::AbstractSystem)
+#     positions = map(f, position(system))
+#     cell = bounding_box(system)
+#     at = species(system)
+#     bc = boundary_conditions(system)
+#     
+#     typeof(system)(cell, positions, at)
+# end
+# 
 function transformpositions(f::Function, system::FastSystem)
-    positions = map(f, position(system))
-    cell = bounding_box(system)
-    at = species(system)
+    particles = collect(system)
+    positions = map(f, position.(particles))
+    box = bounding_box(system)
     bc = boundary_conditions(system)
     
-    FastSystem(cell, bc, positions, at)
+    FastSystem(box, bc, positions, atomic_symbol.(particles),
+               atomic_number.(particles), atomic_mass.(particles))
 end
 
 """
@@ -226,14 +243,16 @@ end
 Do a linear interpolation to obtain `nimg` structures between `sys1` and `sys2`.
 """
 function interpolate_systems(
-        sys1::AbstractSystem, sys2::AbstractSystem, nimg::Int
+        sys1::FastSystem, sys2::FastSystem, nimg::Int
     )
+    particles1 = collect(sys1)
+    particles2 = collect(sys2)
     pos1 = position(sys1)
     pos2 = position(sys2)
     bcs = boundary_conditions(sys1)
     box = bounding_box(sys1)
-    spec = species(sys1)
-    
+    syms, nums, masses = atomic_symbol.(particles1), atomic_number.(particles1), atomic_mass.(particles1)
+
     if !(box == bounding_box(sys2))
         error("Can't interpolate systems with different cells.")
     end
@@ -243,8 +262,8 @@ function interpolate_systems(
     for i in 1:nimg
         newpos = pos1 .+ (i.*posstep)
         
-        fsystem = FastSystem(box, bcs, newpos, spec)
-        newsystems[i] = convert(typeof(sys1), fsystem)
+        fsystem = FastSystem(box, bcs, newpos, syms, nums, masses)
+        newsystems[i] = fsystem
     end
 
     return newsystems
