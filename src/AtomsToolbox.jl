@@ -13,6 +13,7 @@ using AtomsBase: AbstractSystem,
                  periodicity
 using Unitful: ustrip, @u_str
 using Graphs: SimpleGraph, connected_components
+using LinearAlgebra: ⋅, norm
 
 # Constants
 export covalent_radii
@@ -25,6 +26,7 @@ include("atomsbase.jl")
 export box_lengths,
        getdistance,
        getdistancematrix,
+       getangle,
        natural_cutoffs,
        getconnectivitymatrix,
        getconnectedcomponents,

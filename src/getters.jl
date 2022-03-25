@@ -26,10 +26,35 @@ number of atoms in the given `system`.
 """
 function getdistancematrix(system::AbstractSystem)
     if all(periodicity(system))
-        pairwise(PeriodicEuclidean(ustrip.(box_lengths(system))), ustrip.(position(system)))
+        pairwise(PeriodicEuclidean(box_lengths(system)), position(system))
     else
-        pairwise(Euclidean(), ustrip.(position(system)))
+        pairwise(Euclidean(), position(system))
     end
+end
+
+"""
+    getangle(system::AbstractSystem, at1, at2, at3)
+
+Get the angle between vectors connecting atoms with indices `at2`-`at1` and 
+`at2`-`at3`.
+"""
+function getangle(system::AbstractSystem, at1, at2, at3)
+    pos1 = position(system, at1)
+    pos2 = position(system, at2)
+    pos3 = position(system, at3)
+    # TODO Periodicity
+    # if all(periodicity(system))
+    #     cell = box_lengths(system)
+    #     dist = peuclidean(pos1, pos2, cell)
+    # else
+    #     dist = euclidean(pos1, pos2)
+    # end
+    vec1 = pos2 - pos1
+    vec2 = pos2 - pos3
+
+    ang = acosd((vec1 ⋅ vec2)/(norm(vec1)*norm(vec2)))u"°"
+
+    return ang
 end
 
 """
@@ -39,7 +64,7 @@ Get the covalent radii of the atoms in the given `system`. Currently uses values
 obtained from ASE.
 """
 function natural_cutoffs(system::AbstractSystem)
-    radii = covalent_radii[atomic_number.(system)]
+    radii = covalent_radii[atomic_number.(system)]u"Å"
     return radii
 end
 
@@ -81,7 +106,7 @@ connectivity matrix respectively.
 """
 function getconnectedcomponents(str,
                                 dists=true;
-                                nlcutoff=natural_cutoffs(str) .+ 0.2,
+                                nlcutoff=natural_cutoffs(str) .+ 0.2u"Å",
                                 retconnmat=false)
     connmat, distmat = getconnectivitymatrix(str; nlcutoff=nlcutoff, retdistmat=true)
     conncomp = connectedcomponents(connmat)
