@@ -78,8 +78,8 @@ end
 Get the connectivity matrix of the given `system`. The cutoff is specified
 using `nlcutoff`. To return the distance matrix, set `retdistmat` as `true`.
 """
-function getconnectivitymatrix(system;
-                               nlcutoff=natural_cutoffs(system) .+ 0.2,
+function getconnectivitymatrix(system::AbstractSystem;
+                               nlcutoff=natural_cutoffs(system) .+ 0.2u"Å",
                                retdistmat=false)
     distmat = getdistancematrix(system)
 
@@ -90,6 +90,11 @@ function getconnectivitymatrix(system;
     else
         return connmat
     end
+end
+function getconnectivitymatrix(distmat::Matrix; nlcutoff)
+    connmat = (distmat .- nlcutoff') .< nlcutoff
+
+    return connmat
 end
 
 """
