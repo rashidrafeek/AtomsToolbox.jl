@@ -1,6 +1,7 @@
 module AtomsToolbox
 
-using Distances: pairwise, euclidean, peuclidean, Euclidean, PeriodicEuclidean
+using Distances: Distances, pairwise, euclidean, peuclidean,
+                 Euclidean, PeriodicEuclidean
 using AtomsBase: AbstractSystem,
                  FastSystem,
                  FlexibleSystem,
@@ -11,9 +12,10 @@ using AtomsBase: AbstractSystem,
                  bounding_box,
                  boundary_conditions,
                  periodicity
-using Unitful: ustrip, @u_str
+using Unitful: Unitful, ustrip, @u_str, unit
 using Graphs: SimpleGraph, connected_components
-using LinearAlgebra: ⋅, norm
+using LinearAlgebra: LinearAlgebra, ⋅, det, norm
+using StaticArrays: StaticMatrix, Size
 
 # Constants
 export covalent_radii
@@ -27,6 +29,9 @@ export box_lengths,
        getdistance,
        getdistancematrix,
        getangle,
+       getvolume,
+       cell_angles,
+       cell_lengths_and_angles,
        natural_cutoffs,
        getconnectivitymatrix,
        getconnectedcomponents,

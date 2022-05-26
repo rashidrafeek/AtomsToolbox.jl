@@ -1,4 +1,55 @@
-box_lengths(sys::AbstractSystem) = getindex.(bounding_box(sys), [1, 2, 3])
+# Workaround for Unitful StaticMatrix not working.
+# See: https://github.com/PainterQubits/Unitful.jl/issues/538
+function Base.inv(x::StaticMatrix{N,M,T}) where {N,M,T <: Unitful.AbstractQuantity}
+    m = inv(ustrip.(x))
+    iq = eltype(m)
+    reinterpret(
+        Unitful.Quantity{iq, inv(Unitful.dimension(T)), typeof(inv(unit(T)))}, 
+        m
+    )
+end 
+
+# Functions to find shortest distance accounting for PBC, from pymatgen.
+include("pbc_utils.jl")
+
+"""
+    box_lengths(sys::AbstractSystem)
+
+Obtain the cell lengths as a Vector, [a,b,c].
+"""
+box_lengths(sys::AbstractSystem) = norm.(bounding_box(sys))
+
+"""
+    cell_lengths_and_angles(sys::AbstractSystem)
+
+Obtain the cell lengths and angles as a Vector, [a,b,c,α,β,γ].
+"""
+function cell_lengths_and_angles(sys::AbstractSystem)
+    av,bv,cv = bounding_box(sys)
+    a,b,c = norm.((av,bv,cv))
+    
+    α = acosd((bv⋅cv)/(b*c))u"°"
+    β = acosd((av⋅cv)/(a*c))u"°"
+    γ = acosd((av⋅bv)/(a*b))u"°"
+
+    return [a,b,c,α,β,γ]
+end
+
+"""
+    cell_angles(sys::AbstractSystem)
+
+Obtain the cell angles as a Vector, [α,β,γ].
+"""
+function cell_angles(sys::AbstractSystem)
+    av,bv,cv = bounding_box(sys)
+    a,b,c = norm.((av,bv,cv))
+    
+    α = acosd((bv⋅cv)/(b*c))u"°"
+    β = acosd((av⋅cv)/(a*c))u"°"
+    γ = acosd((av⋅bv)/(a*b))u"°"
+
+    return [α,β,γ]
+end
 
 """
     getdistance(system::AbstractSystem, at1, at2)
@@ -9,8 +60,12 @@ function getdistance(system::AbstractSystem, at1, at2)
     pos1 = position(system, at1)
     pos2 = position(system, at2)
     if all(periodicity(system))
-        cell = box_lengths(system)
-        dist = peuclidean(pos1, pos2, cell)
+        cell = reduce(hcat, bounding_box(system))'
+        icell = inv(cell)
+        frpos1 = pos1' * icell
+        frpos2 = pos2' * icell
+        dists = pbc_shortest_vectors(cell, frpos1, frpos2, true, false)
+        dist = only(dists)
     else
         dist = euclidean(pos1, pos2)
     end
@@ -26,10 +81,16 @@ number of atoms in the given `system`.
 """
 function getdistancematrix(system::AbstractSystem)
     if all(periodicity(system))
-        pairwise(PeriodicEuclidean(box_lengths(system)), position(system))
+        cell = reduce(hcat, bounding_box(system))'
+        pos = reduce(hcat, position(system))'
+        frpos = pos * inv(cell)
+
+        dists = pbc_shortest_vectors(cell, frpos, true, false)
     else
-        pairwise(Euclidean(), position(system))
+        dists = pairwise(Euclidean(), position(system))
     end
+
+    return dists
 end
 
 """
@@ -134,3 +195,36 @@ end
 function connectedcomponents(connmat::AbstractMatrix)
     return connected_components(SimpleGraph(connmat))
 end
+
+#
+# Cell utils
+# 
+
+getvolume(sys::AbstractSystem) = det(reduce(hcat, bounding_box(sys)))
+
+# 
+# Generic utils
+#
+
+# PBC for non-rectangular cells
+# See: https://github.com/JuliaStats/Distances.jl/pull/237
+# function Distances._evaluate(
+#         dist::PeriodicEuclidean, ua::AbstractVector{Q}, ub::AbstractVector{Q}, up::AbstractMatrix{Q}
+#     ) where {Q <: Unitful.AbstractQuantity}
+#     a,b,p = ustrip(ua), ustrip(ub), ustrip(up) # Currently solve doesn't work with Unitful matrices
+#     ndim = LinearAlgebra.checksquare(p)
+#     @boundscheck if length(a) != length(b)
+#         throw(DimensionMismatch("first array has length $(length(a)) which does not match the length of the second, $(length(b))."))
+#     end
+#     @boundscheck if length(a) != ndim
+#         throw(DimensionMismatch("arrays have length $(length(a)) but basis vectors have length $ndim."))
+#     end
+#     s = p \ (a - b)      # decompose to p-basis, a - b = sx x⃗ + sy y⃗ + ...
+#     mindistance = Inf
+#     s = mod.(s, 1)       # move to first "quadrant"
+#     @inbounds for k = 0:1<<ndim-1  # 2^{# of dimensions} possible choices
+#         loc = sum(i->view(p,:,i) .* (k>>(i-1) & 1 == 0 ? s[i] : s[i]-1), 1:ndim)
+#         mindistance = min(norm(loc), mindistance)
+#     end
+#     return mindistance*unit(Q)
+# end
