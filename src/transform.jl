@@ -35,7 +35,7 @@ system. Only works for orthogonal boxes.
 """
 function wrap(system::AbstractSystem)
     origin = [0.0, 0.0, 0.0]u"Å"
-    cell = box_lengths(system)
+    cell = cell_lengths(system)
     f = posvec -> (ifelse.((origin .<= posvec .<= cell),
                            posvec,
                            posvec .+ (cell .* floor.((cell .- posvec) ./ cell))))

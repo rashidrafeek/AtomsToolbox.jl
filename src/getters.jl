@@ -13,11 +13,11 @@ end
 include("pbc_utils.jl")
 
 """
-    box_lengths(sys::AbstractSystem)
+    cell_lengths(sys::AbstractSystem)
 
 Obtain the cell lengths as a Vector, [a,b,c].
 """
-box_lengths(sys::AbstractSystem) = norm.(bounding_box(sys))
+cell_lengths(sys::AbstractSystem) = norm.(bounding_box(sys))
 
 """
     cell_lengths_and_angles(sys::AbstractSystem)
@@ -105,7 +105,7 @@ function getangle(system::AbstractSystem, at1, at2, at3)
     pos3 = position(system, at3)
     # TODO Periodicity
     # if all(periodicity(system))
-    #     cell = box_lengths(system)
+    #     cell = cell_lengths(system)
     #     dist = peuclidean(pos1, pos2, cell)
     # else
     #     dist = euclidean(pos1, pos2)

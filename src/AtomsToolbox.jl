@@ -25,11 +25,11 @@ include("constants.jl")
 include("atomsbase.jl")
 
 # Functions to get data from `AbstractSystem`s
-export box_lengths,
-       getdistance,
+export getdistance,
        getdistancematrix,
        getangle,
        getvolume,
+       cell_lengths,
        cell_angles,
        cell_lengths_and_angles,
        natural_cutoffs,
