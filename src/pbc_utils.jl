@@ -62,7 +62,7 @@ function pbc_shortest_vectors(lattice::AbstractArray, fcoords1::AbstractArray, f
             if return_vects
                 for l in 1:3
                     vectors[i, j, l] = pre_im[l] + cart_im[bestk, l]
-                    vectors[j, i, l] = -vectors[i, j, l]
+                    # vectors[j, i, l] = -vectors[i, j, l]
                 end
             end
         end

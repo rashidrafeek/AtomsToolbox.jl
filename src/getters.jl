@@ -103,15 +103,18 @@ function getangle(system::AbstractSystem, at1, at2, at3)
     pos1 = position(system, at1)
     pos2 = position(system, at2)
     pos3 = position(system, at3)
-    # TODO Periodicity
-    # if all(periodicity(system))
-    #     cell = cell_lengths(system)
-    #     dist = peuclidean(pos1, pos2, cell)
-    # else
-    #     dist = euclidean(pos1, pos2)
-    # end
-    vec1 = pos2 - pos1
-    vec2 = pos2 - pos3
+    if all(periodicity(system))
+        cell = reduce(hcat, bounding_box(system))'
+        icell = inv(cell)
+        frpos1 = pos1' * icell
+        frpos2 = pos2' * icell
+        frpos3 = pos3' * icell
+        vec1 = pbc_shortest_vectors(cell, frpos2, frpos1)
+        vec2 = pbc_shortest_vectors(cell, frpos2, frpos3)
+    else
+        vec1 = pos2 - pos1
+        vec2 = pos2 - pos3
+    end
 
     ang = acosd((vec1 ⋅ vec2)/(norm(vec1)*norm(vec2)))u"°"
 
