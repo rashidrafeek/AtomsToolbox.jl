@@ -64,7 +64,7 @@ function getdistance(system::AbstractSystem, at1, at2)
         icell = inv(cell)
         frpos1 = pos1' * icell
         frpos2 = pos2' * icell
-        dists = pbc_shortest_vectors(cell, frpos1, frpos2, true, false)
+        dists = pbc_shortest_vectors(cell, frpos1, frpos2, Val(true), Val(false))
         dist = only(dists)
     else
         dist = euclidean(pos1, pos2)
@@ -85,7 +85,7 @@ function getdistancematrix(system::AbstractSystem)
         pos = reduce(hcat, position(system))'
         frpos = pos * inv(cell)
 
-        dists = pbc_shortest_vectors(cell, frpos, true, false)
+        dists = pbc_shortest_vectors(cell, frpos, Val(true), Val(false))
     else
         dists = pairwise(Euclidean(), position(system))
     end
@@ -199,11 +199,17 @@ function connectedcomponents(connmat::AbstractMatrix)
     return connected_components(SimpleGraph(connmat))
 end
 
+function getfractionalcoordinates(sys::AbstractSystem)
+    cellmat = getcellmatrix(sys)
+    frpos = reduce(hcat, position(sys))' * inv(cell')
+end
+
 #
 # Cell utils
 # 
 
 getvolume(sys::AbstractSystem) = det(reduce(hcat, bounding_box(sys)))
+getcellmatrix(sys::AbstractSystem) = reduce(hcat, bounding_box(sys))
 
 # 
 # Generic utils

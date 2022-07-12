@@ -23,7 +23,12 @@ function dot_2d_mod(a,b)
     return out
 end
 
-function pbc_shortest_vectors(lattice::AbstractArray, fcoords1::AbstractArray, fcoords2::AbstractArray, return_dists=false, return_vects=true)
+function pbc_shortest_vectors(
+        lattice::AbstractArray, 
+        fcoords1::AbstractArray, fcoords2::AbstractArray,
+        return_dists::Val{RD}=Val(false), 
+        return_vects::Val{RV}=Val(true)
+    ) where {RD,RV}
     I = size(fcoords1)[1]
     J = size(fcoords2)[1]
     T = eltype(lattice)
@@ -35,7 +40,7 @@ function pbc_shortest_vectors(lattice::AbstractArray, fcoords1::AbstractArray, f
     cart_f2 = dot_2d_mod(fcoords2, lattice)
     cart_im = images_view * lattice
 
-    if return_vects
+    if RV
         vectors = similar(lattice, I, J, 3)
     end
     dists = similar(lattice, I, J)
@@ -59,7 +64,7 @@ function pbc_shortest_vectors(lattice::AbstractArray, fcoords1::AbstractArray, f
                 end
             end
             dists[i,j] = sqrt(best)
-            if return_vects
+            if RV
                 for l in 1:3
                     vectors[i, j, l] = pre_im[l] + cart_im[bestk, l]
                     # vectors[j, i, l] = -vectors[i, j, l]
@@ -68,23 +73,28 @@ function pbc_shortest_vectors(lattice::AbstractArray, fcoords1::AbstractArray, f
         end
     end
 
-    if return_dists && return_vects
+    if RD && RV
         return vectors, dists
-    elseif return_dists
+    elseif RD
         return dists
     else
         return vectors
     end
 end
 
-function pbc_shortest_vectors(lattice::AbstractArray, fcoords::AbstractArray, return_dists=false, return_vects=true)
+function pbc_shortest_vectors(
+        lattice::AbstractArray, 
+        fcoords::AbstractArray, 
+        return_dists::Val{RD}=Val(false), 
+        return_vects::Val{RV}=Val(true)
+    ) where {RD,RV}
     I = size(fcoords)[1]
     T = eltype(lattice)
 
     cart_f = dot_2d_mod(fcoords, lattice)
     cart_im = images_view * lattice
 
-    if return_vects
+    if RV
         vectors = similar(lattice, I, I, 3)
     end
     dists = similar(lattice, I, I)
@@ -94,7 +104,7 @@ function pbc_shortest_vectors(lattice::AbstractArray, fcoords::AbstractArray, re
         for j in i:I
             if i == j
                 dists[i, j] = zero(T)
-                if return_vects
+                if RV
                     vectors[i, j, :] .= zero(T)
                 end
                 continue
@@ -115,7 +125,7 @@ function pbc_shortest_vectors(lattice::AbstractArray, fcoords::AbstractArray, re
                 end
             end
             dists[i,j] = dists[j,i] = sqrt(best)
-            if return_vects
+            if RV
                 for l in 1:3
                     vectors[i, j, l] = pre_im[l] + cart_im[bestk, l]
                     vectors[j, i, l] = -vectors[i, j, l]
@@ -124,11 +134,70 @@ function pbc_shortest_vectors(lattice::AbstractArray, fcoords::AbstractArray, re
         end
     end
 
-    if return_dists && return_vects
+    if RD && RV
         return vectors, dists
-    elseif return_dists
+    elseif RD
         return dists
     else
         return vectors
     end
+end
+
+function pbc_shortest_vectors_withpbcimg(
+        lattice::AbstractArray, 
+        fcoords::AbstractArray, 
+        return_dists::Val{RD}=Val(false), 
+        return_vects::Val{RV}=Val(true)
+    ) where {RD,RV}
+    I = size(fcoords)[1]
+    T = eltype(lattice)
+
+    cart_f = dot_2d_mod(fcoords, lattice)
+    cart_im = images_view * lattice
+
+    if RV
+        vectors = similar(lattice, I, I, 3)
+    end
+    dists = similar(lattice, I, I)
+
+    pre_im = similar(lattice, 3)
+    pbcimages = Array{Tuple{Int,Int,Int}}(undef, I, I)
+    for i in 1:I
+        for j in i:I
+            if i == j
+                dists[i, j] = zero(T)
+                pbcimages[i,j] = (0,0,0)
+                if RV
+                    vectors[i, j, :] .= zero(T)
+                end
+                continue
+            end
+            for l in 1:3
+                pre_im[l] = cart_f[j,l] - cart_f[i,l]
+            end
+            best = 1e100*oneunit(T)^2
+            bestk = 100
+            for k in 1:27
+                da = (pre_im[1] + cart_im[k, 1])^2
+                db = (pre_im[2] + cart_im[k, 2])^2
+                dc = (pre_im[3] + cart_im[k, 3])^2
+                d = da + db + dc
+                if d < best
+                    best = d
+                    bestk = k
+                end
+            end
+            dists[i,j] = dists[j,i] = sqrt(best)
+            pbcimages[i,j] = Tuple(images_view[bestk,:])
+            pbcimages[j,i] = Tuple(-images_view[bestk,:])
+            if RV
+                for l in 1:3
+                    vectors[i, j, l] = pre_im[l] + cart_im[bestk, l]
+                    vectors[j, i, l] = -vectors[i, j, l]
+                end
+            end
+        end
+    end
+
+    return vectors, dists, pbcimages
 end
