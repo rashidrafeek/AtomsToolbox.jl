@@ -31,7 +31,10 @@ end
     wrap(system::AbstractSystem)
 
 Wrap all the atoms in the given `system` into the cell and return the wrapped
-system. Only works for orthogonal boxes.
+system. 
+
+!!! warning
+    Currently only works for orthogonal boxes.
 """
 function wrap(system::AbstractSystem)
     origin = [0.0, 0.0, 0.0]u"Å"
@@ -40,5 +43,12 @@ function wrap(system::AbstractSystem)
                            posvec,
                            posvec .+ (cell .* floor.((cell .- posvec) ./ cell))))
 
+    # cellmat = getcellmatrix(system)'
+    # icell = inv(cellmat)
+    # f = function (posvec)
+    #     frpos = posvec * icell
+    #     frposincell = sign.(frpos) .* getindex.(modf.(frpos),1)
+    #     return frposincell*cellmat'
+    # end
     return transformpositions(f, system)
 end
