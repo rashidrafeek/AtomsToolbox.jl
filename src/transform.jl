@@ -1,3 +1,12 @@
+function _getdefaultdata(system::AbstractSystem)
+    particles = collect(system)
+    positions = position(system)
+    box = bounding_box(system)
+    bc = boundary_conditions(system)
+
+    return particles, positions, box, bc
+end
+
 """
     transformpositions(f::Function, system::AbstractSystem)
 
@@ -52,3 +61,16 @@ function wrap(system::AbstractSystem)
     # end
     return transformpositions(f, system)
 end
+
+# function makesupercell(system::FastSystem, supercellmatrix)
+#     particles, positions, box, bc = _getdefaultdata(system)
+# 
+#     
+# 
+#     return FastSystem(box,
+#                       bc,
+#                       positions,
+#                       atomic_symbol.(particles),
+#                       atomic_number.(particles),
+#                       atomic_mass.(particles))
+# end
