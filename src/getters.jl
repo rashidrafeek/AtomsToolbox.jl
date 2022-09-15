@@ -128,7 +128,7 @@ Get the covalent radii of the atoms in the given `system`. Currently uses values
 obtained from ASE.
 """
 function natural_cutoffs(system::AbstractSystem)
-    radii = covalent_radii[atomic_number.(system)]u"Å"
+    radii = covalent_radii[atomic_number.(system)]
     return radii
 end
 
@@ -208,8 +208,8 @@ end
 # Cell utils
 # 
 
-getvolume(sys::AbstractSystem) = det(reduce(hcat, bounding_box(sys)))
-getcellmatrix(sys::AbstractSystem) = reduce(hcat, bounding_box(sys))
+@inline getcellmatrix(sys::AbstractSystem) = reduce(hcat, bounding_box(sys))
+getvolume(sys::AbstractSystem) = det(getcellmatrix(sys))
 
 # 
 # Generic utils
