@@ -23,14 +23,12 @@ system.
 # end
 # 
 function transformpositions(f::Function, system::FastSystem)
-    particles = collect(system)
-    positions = map(f, position.(particles))
-    box = bounding_box(system)
-    bc = boundary_conditions(system)
+    particles, positions, box, bc = _getdefaultdata(system)
+    final_positions = map(f, positions)
 
     return FastSystem(box,
                       bc,
-                      positions,
+                      final_positions,
                       atomic_symbol.(particles),
                       atomic_number.(particles),
                       atomic_mass.(particles))
