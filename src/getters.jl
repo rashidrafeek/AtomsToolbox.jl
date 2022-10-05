@@ -201,7 +201,7 @@ end
 
 function getfractionalcoordinates(sys::AbstractSystem)
     cellmat = getcellmatrix(sys)
-    frpos = reduce(hcat, position(sys))' * inv(cell')
+    frpos = reduce(hcat, position(sys))' * inv(cellmat')
 end
 
 #
