@@ -79,18 +79,32 @@ end
 Get the distance matrix between all atoms as an NxN matrix where N is the
 number of atoms in the given `system`.
 """
-function getdistancematrix(system::AbstractSystem)
-    if all(periodicity(system))
-        cell = reduce(hcat, bounding_box(system))'
-        pos = reduce(hcat, position(system))'
-        frpos = pos * inv(cell)
+function getdistancematrix(system::AbstractSystem, pbc=nothing)
+    if isnothing(pbc)
+        if all(periodicity(system))
+            cell = reduce(hcat, bounding_box(system))'
+            pos = reduce(hcat, position(system))'
+            frpos = pos * inv(cell)
 
-        dists = pbc_shortest_vectors(cell, frpos, Val(true), Val(false))
+            dists = pbc_shortest_vectors(cell, frpos, Val(true), Val(false))
+        else
+            dists = pairwise(Euclidean(), position(system))
+        end
+
+        return dists
     else
-        dists = pairwise(Euclidean(), position(system))
-    end
+        if pbc
+            cell = reduce(hcat, bounding_box(system))'
+            pos = reduce(hcat, position(system))'
+            frpos = pos * inv(cell)
 
-    return dists
+            dists = pbc_shortest_vectors(cell, frpos, Val(true), Val(false))
+        else
+            dists = pairwise(Euclidean(), position(system))
+        end
+
+        return dists
+    end
 end
 
 """
