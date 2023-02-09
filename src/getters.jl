@@ -20,11 +20,11 @@ Obtain the cell lengths as a Vector, [a,b,c].
 cell_lengths(sys::AbstractSystem) = norm.(bounding_box(sys))
 
 """
-    cell_lengths_and_angles(sys::AbstractSystem)
+    cell_parameters(sys::AbstractSystem)
 
 Obtain the cell lengths and angles as a Vector, [a,b,c,α,β,γ].
 """
-function cell_lengths_and_angles(sys::AbstractSystem)
+function cell_parameters(sys::AbstractSystem)
     av,bv,cv = bounding_box(sys)
     a,b,c = norm.((av,bv,cv))
     
@@ -52,11 +52,11 @@ function cell_angles(sys::AbstractSystem)
 end
 
 """
-    getdistance(system::AbstractSystem, at1, at2)
+    distance(system::AbstractSystem, at1, at2)
 
 Get the distance between atoms with indices `at1` and `at2`.
 """
-function getdistance(system::AbstractSystem, at1, at2)
+function distance(system::AbstractSystem, at1, at2)
     pos1 = position(system, at1)
     pos2 = position(system, at2)
     if all(periodicity(system))
@@ -74,12 +74,12 @@ function getdistance(system::AbstractSystem, at1, at2)
 end
 
 """
-    getdistancematrix(system::AbstractSystem)
+    distance_matrix(system::AbstractSystem)
 
 Get the distance matrix between all atoms as an NxN matrix where N is the
 number of atoms in the given `system`.
 """
-function getdistancematrix(system::AbstractSystem, pbc=nothing)
+function distance_matrix(system::AbstractSystem, pbc=nothing)
     if isnothing(pbc)
         if all(periodicity(system))
             cell = reduce(hcat, bounding_box(system))'
@@ -108,12 +108,12 @@ function getdistancematrix(system::AbstractSystem, pbc=nothing)
 end
 
 """
-    getangle(system::AbstractSystem, at1, at2, at3)
+    angle(system::AbstractSystem, at1, at2, at3)
 
 Get the angle between vectors connecting atoms with indices `at2`-`at1` and 
 `at2`-`at3`.
 """
-function getangle(system::AbstractSystem, at1, at2, at3)
+function angle(system::AbstractSystem, at1::Int, at2::Int, at3::Int)
     pos1 = position(system, at1)
     pos2 = position(system, at2)
     pos3 = position(system, at3)
@@ -147,7 +147,7 @@ function natural_cutoffs(system::AbstractSystem)
 end
 
 """
-    getconnectivitymatrix(
+    connectivity_matrix(
         system;                                                                 
         nlcutoff = natural_cutoffs(system).+0.2,
         retdistmat = false
@@ -156,10 +156,10 @@ end
 Get the connectivity matrix of the given `system`. The cutoff is specified
 using `nlcutoff`. To return the distance matrix, set `retdistmat` as `true`.
 """
-function getconnectivitymatrix(system::AbstractSystem;
+function connectivity_matrix(system::AbstractSystem;
                                nlcutoff=natural_cutoffs(system) .+ 0.2u"Å",
                                retdistmat=false)
-    distmat = getdistancematrix(system)
+    distmat = distance_matrix(system)
 
     connmat = (distmat .- nlcutoff') .< nlcutoff
 
@@ -169,14 +169,14 @@ function getconnectivitymatrix(system::AbstractSystem;
         return connmat
     end
 end
-function getconnectivitymatrix(distmat::Matrix; nlcutoff)
+function connectivity_matrix(distmat::Matrix; nlcutoff)
     connmat = (distmat .- nlcutoff') .< nlcutoff
 
     return connmat
 end
 
 """
-    getconnectedcomponents(
+    connected_components(
         system, dists=true;
         nlcutoff = natural_cutoffs(str).+0.2,
         retconnmat = false
@@ -187,12 +187,14 @@ of the elements present, `nlcutoff` which by default is the covalent radii.
 `dists` and `retconnmat` specifies whether to return the distance matrix and 
 connectivity matrix respectively.
 """
-function getconnectedcomponents(str,
-                                dists=true;
-                                nlcutoff=natural_cutoffs(str) .+ 0.2u"Å",
-                                retconnmat=false)
-    connmat, distmat = getconnectivitymatrix(str; nlcutoff=nlcutoff, retdistmat=true)
-    conncomp = connectedcomponents(connmat)
+function connected_components(
+        str,
+        dists=true;
+        nlcutoff=natural_cutoffs(str) .+ 0.2u"Å",
+        retconnmat=false
+    )
+    connmat, distmat = connectivity_matrix(str; nlcutoff=nlcutoff, retdistmat=true)
+    conncomp = connected_components(connmat)
 
     if dists
         if retconnmat
@@ -209,12 +211,12 @@ function getconnectedcomponents(str,
     end
 end
 
-function connectedcomponents(connmat::AbstractMatrix)
-    return connected_components(SimpleGraph(connmat))
+function connected_components(connmat::AbstractMatrix)
+    return Graphs.connected_components(Graphs.SimpleGraph(connmat))
 end
 
-function getfractionalcoordinates(sys::AbstractSystem)
-    cellmat = getcellmatrix(sys)
+function scaled_position(sys::AbstractSystem)
+    cellmat = cell_matrix(sys)
     frpos = reduce(hcat, position(sys))' * inv(cellmat')
 end
 
@@ -222,8 +224,8 @@ end
 # Cell utils
 # 
 
-@inline getcellmatrix(sys::AbstractSystem) = reduce(hcat, bounding_box(sys))
-getvolume(sys::AbstractSystem) = det(getcellmatrix(sys))
+@inline cell_matrix(sys::AbstractSystem) = reduce(hcat, bounding_box(sys))
+volume(sys::AbstractSystem) = det(cell_matrix(sys))
 
 # 
 # Generic utils
