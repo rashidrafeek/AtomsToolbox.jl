@@ -218,6 +218,13 @@ end
 function scaled_position(sys::AbstractSystem)
     cellmat = cell_matrix(sys)
     frpos = reduce(hcat, position(sys))' * inv(cellmat')
+
+    Vector.(eachrow(frpos))
+end
+function scaled_position(atom::Atom, cellmat)
+    frpos = position(atom)' * inv(cellmat')
+
+    frpos'
 end
 
 #
