@@ -56,10 +56,10 @@ end
 
 Get the distance between atoms with indices `at1` and `at2`.
 """
-function distance(system::AbstractSystem, at1, at2)
+function distance(system::AbstractSystem, at1, at2; pbc=all(periodicity(system)))
     pos1 = position(system, at1)
     pos2 = position(system, at2)
-    if all(periodicity(system))
+    if pbc
         cell = reduce(hcat, bounding_box(system))'
         icell = inv(cell)
         frpos1 = pos1' * icell
@@ -79,32 +79,18 @@ end
 Get the distance matrix between all atoms as an NxN matrix where N is the
 number of atoms in the given `system`.
 """
-function distance_matrix(system::AbstractSystem, pbc=nothing)
-    if isnothing(pbc)
-        if all(periodicity(system))
-            cell = reduce(hcat, bounding_box(system))'
-            pos = reduce(hcat, position(system))'
-            frpos = pos * inv(cell)
+function distance_matrix(system::AbstractSystem; pbc=all(periodicity(system)))
+    if pbc
+        cell = reduce(hcat, bounding_box(system))'
+        pos = reduce(hcat, position(system))'
+        frpos = pos * inv(cell)
 
-            dists = pbc_shortest_vectors(cell, frpos, Val(true), Val(false))
-        else
-            dists = pairwise(Euclidean(), position(system))
-        end
-
-        return dists
+        dists = pbc_shortest_vectors(cell, frpos, Val(true), Val(false))
     else
-        if pbc
-            cell = reduce(hcat, bounding_box(system))'
-            pos = reduce(hcat, position(system))'
-            frpos = pos * inv(cell)
-
-            dists = pbc_shortest_vectors(cell, frpos, Val(true), Val(false))
-        else
-            dists = pairwise(Euclidean(), position(system))
-        end
-
-        return dists
+        dists = pairwise(Euclidean(), position(system))
     end
+
+    return dists
 end
 
 """
@@ -113,11 +99,11 @@ end
 Get the angle between vectors connecting atoms with indices `at2`-`at1` and 
 `at2`-`at3`.
 """
-function angle(system::AbstractSystem, at1::Int, at2::Int, at3::Int)
+function angle(system::AbstractSystem, at1::Int, at2::Int, at3::Int; pbc=all(periodicity(system)))
     pos1 = position(system, at1)
     pos2 = position(system, at2)
     pos3 = position(system, at3)
-    if all(periodicity(system))
+    if pbc
         cell = reduce(hcat, bounding_box(system))'
         icell = inv(cell)
         frpos1 = pos1' * icell

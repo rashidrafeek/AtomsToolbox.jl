@@ -61,13 +61,14 @@ function wrap(system::AbstractSystem)
 end
 
 """
-    supercell(system::AbstractSystem, supercellvec::Vector{Int})
+    supercell(system::AbstractSystem, supercellvec::Vector{Int}; sorted=false)
 
 Create a supercell of the given `system`, where `supercellvec` is the
 repetitions in each direction. All system and atom properties are copied to
-the new system.
+the new system. If `sorted` is true, resultant supercell is sorted based on
+its atomic_symbol.
 """
-function supercell(system::AbstractSystem, supercellvec::Vector{Int})
+function supercell(system::AbstractSystem, supercellvec::Vector{Int}; sorted=false)
     # Converts to fractional coordinates and adds unity in each of the direction
     # to be repeated
     if length(supercellvec) != 3 || !all(supercellvec .> 0)
@@ -108,6 +109,10 @@ function supercell(system::AbstractSystem, supercellvec::Vector{Int})
                 Atom(;position=newpos, at_props...)
             end
         end...)
+    end
+
+    if sorted
+        sort!(newparticles; by=atomic_symbol)
     end
 
     FlexibleSystem(newparticles; system_props...)

@@ -37,10 +37,11 @@ export distance,
 include("getters.jl")
 
 # Functions to transform `AbstractSystem`s
-export wrap
+export wrap,
+       supercell
 include("transform.jl")
 
-# Fuction to build new `AbstractSystem`s
+# Function to build new `AbstractSystem`s
 include("build.jl")
 
 end
