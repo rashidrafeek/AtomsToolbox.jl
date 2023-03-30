@@ -66,7 +66,7 @@ end
 Create a supercell of the given `system`, where `supercellvec` is the
 repetitions in each direction. All system and atom properties are copied to
 the new system. If `sorted` is true, resultant supercell is sorted based on
-its atomic_symbol.
+atomic_symbol of input structure.
 """
 function supercell(system::AbstractSystem, supercellvec::Vector{Int}; sorted=false)
     # Converts to fractional coordinates and adds unity in each of the direction
@@ -89,6 +89,34 @@ function supercell(system::AbstractSystem, supercellvec::Vector{Int}; sorted=fal
 
     particles = collect(system)
     newparticles = copy(particles)
+
+    # TODO sort based on atom type in input structure
+    # newparticles = eltype(particles)[]
+
+    # map(particles) do at
+    #     spos = scaled_position(at, cellmat)
+
+    #     map(1:3) do ax
+    #         repunit = supercellvec[ax]
+    #         for i in 0:(repunit-1)
+    #             v = collect(spos)
+    #             v[ax] += i
+    #             
+    #             at_props = Dict{Symbol, Any}()
+    #             # All atom properties apart from position is copied
+    #             for (k,v) in pairs(at)
+    #                 if k != :position
+    #                     at_props[k] = v
+    #                 end
+    #             end
+    #             newpos = cellmat*v
+
+    #             push!(newparticles, Atom(;position=newpos, at_props...))
+    #         end
+    #     end
+    # end
+
+
     for ax in 1:3
         repunit = supercellvec[ax]
 
@@ -112,7 +140,8 @@ function supercell(system::AbstractSystem, supercellvec::Vector{Int}; sorted=fal
     end
 
     if sorted
-        sort!(newparticles; by=atomic_symbol)
+        inp_atsyms = atomic_symbol(system)
+        sort!(newparticles; by=x -> findfirst(==(atomic_symbol(x)), inp_atsyms))
     end
 
     FlexibleSystem(newparticles; system_props...)
