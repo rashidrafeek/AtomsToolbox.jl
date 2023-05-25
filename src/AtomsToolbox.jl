@@ -17,7 +17,7 @@ using Unitful: Unitful, ustrip, @u_str, unit
 import Graphs
 using LinearAlgebra: LinearAlgebra, ⋅, det, norm
 using StaticArrays: StaticMatrix, Size
-import Base: angle # To extend for AbstractSystem 
+import Base: angle, sort # To extend for AbstractSystem 
 
 # Constants
 include("constants.jl")

@@ -146,3 +146,16 @@ function supercell(system::AbstractSystem, supercellvec::Vector{Int}; sorted=fal
 
     FlexibleSystem(newparticles; system_props...)
 end
+
+"""
+    sort(system::AbstractSystem; by=x->atomic_number(x), rev=false)
+
+Sort an the atoms in an AbstractSystem. The `by` keyword argument specifies the
+sorting function and takes as input the atom object. By default, the system is
+sorted based on its atomic numbers. `rev` can be used to reverse the order.
+"""
+function sort(system::AbstractSystem; by=x->atomic_number(x), rev=false)
+    atoms = collect(system)
+    sortedatoms = sort(atoms; by, rev)
+    return FlexibleSystem(sortedatoms; pairs(system)...)
+end
