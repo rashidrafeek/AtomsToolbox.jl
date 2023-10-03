@@ -201,6 +201,13 @@ function connected_components(connmat::AbstractMatrix)
     return Graphs.connected_components(Graphs.SimpleGraph(connmat))
 end
 
+"""
+    scaled_position(sys::AbstractSystem)
+    scaled_position(atom::Atom, cellmat)
+
+Obtain the scaled positions (fractional coordinates) with respect to the cell
+matrix for the given system or `atom`.
+"""
 function scaled_position(sys::AbstractSystem)
     cellmat = cell_matrix(sys)
     frpos = reduce(hcat, position(sys))' * inv(cellmat')
