@@ -26,5 +26,6 @@ issues if present.**
 
 ### Functions to transform/build systems
 
+- `sort`
 - `wrap`
 - `supercell`
