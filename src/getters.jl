@@ -132,11 +132,8 @@ end
 """
     dihedral(system::AbstractSystem, at1, at2, at3, at4)
 
-Get the angle between vectors connecting atoms with indices `at2`-`at1` and 
-`at2`-`at3`.
-
- Source: Blondel and Karplus, J. Comp. Chem., Vol. 17, No. 9, 1
-   132-1 141 (1 996).
+Get the dihedral angle for the atoms specified by indices `at1`, `at2`, `at3`
+and `at4`.
 """
 function dihedral(system::AbstractSystem, at1::Int, at2::Int, at3::Int, at4::Int; pbc=all(periodicity(system)))
     pos1 = position(system, at1)
@@ -149,6 +146,33 @@ end
 function dihedral(
         system::AbstractSystem, pos1::T, pos2::T, pos3::T, pos4::T; pbc=all(periodicity(system))
     ) where {T <: AbstractVector{<:Unitful.Length}}
+    # Source: Blondel and Karplus, J. Comp. Chem., Vol. 17, No. 9, 1
+    #   132-1 141 (1 996).
+    # if pbc
+    #     cell = reduce(hcat, bounding_box(system))'
+    #     icell = inv(cell)
+    #     frpos1 = pos1' * icell
+    #     frpos2 = pos2' * icell
+    #     frpos3 = pos3' * icell
+    #     frpos4 = pos4' * icell
+    #     vec0 = -pbc_shortest_vectors(cell, frpos3, frpos2)[1,1,:]  # Axis
+    #     vec1 = pbc_shortest_vectors(cell, frpos2, frpos1)[1,1,:]
+    #     vec2 = pbc_shortest_vectors(cell, frpos4, frpos3)[1,1,:]
+    # else
+    #     vec0 = pos2 - pos3
+    #     vec1 = pos2 - pos1
+    #     vec2 = pos4 - pos3
+    # end
+    # p1 = vec1 × vec0
+    # p2 = vec0 × vec2
+    # cross_p1p2 = p1 × p2
+
+    # sin_ang = (cross_p1p2 ⋅ vec0)/(norm(p1)*norm(p2)*norm(vec0))
+    # cos_ang = (p1 ⋅ p2)/(norm(p1)*norm(p2))
+
+    # ang = atand(sin_ang, cos_ang)u"°"
+    
+    # Obtained from pymatgen
     if pbc
         cell = reduce(hcat, bounding_box(system))'
         icell = inv(cell)
@@ -156,21 +180,18 @@ function dihedral(
         frpos2 = pos2' * icell
         frpos3 = pos3' * icell
         frpos4 = pos4' * icell
-        vec0 = -pbc_shortest_vectors(cell, frpos3, frpos2)[1,1,:]  # Axis
-        vec1 = pbc_shortest_vectors(cell, frpos2, frpos1)[1,1,:]
-        vec2 = pbc_shortest_vectors(cell, frpos4, frpos3)[1,1,:]
-        p1 = vec1 × vec0
-        p2 = vec0 × vec2
+        vec1 = pbc_shortest_vectors(cell, frpos3, frpos4)[1,1,:]  # Axis
+        vec2 = pbc_shortest_vectors(cell, frpos2, frpos3)[1,1,:]
+        vec3 = pbc_shortest_vectors(cell, frpos1, frpos2)[1,1,:]
     else
-        vec1 = pos2 - pos1
+        vec1 = pos3 - pos4
         vec2 = pos2 - pos3
+        vec3 = pos1 - pos2
     end
-    cross_p1p2 = p1 × p2
+    p23 = vec2 × vec3
+    p12 = vec1 × vec2
 
-    sin_ang = (cross_p1p2 ⋅ vec0)/(norm(p1)*norm(p2)*norm(vec0))
-    cos_ang = (p1 ⋅ p2)/(norm(p1)*norm(p2))
-
-    ang = atand(sin_ang, cos_ang)u"°"
+    ang = atand(norm(vec2)*(vec1 ⋅ p23), p12 ⋅ p23)u"°"
 
     # if ang < 0.0u"°"
     #     return 360u"°" + ang

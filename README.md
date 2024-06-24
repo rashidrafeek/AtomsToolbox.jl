@@ -17,6 +17,7 @@ issues if present.**
 - `distance`
 - `distance_matrix`
 - `angle`
+- `dihedral`
 - `volume`
 - `cell_lengths`
 - `cell_angles`
