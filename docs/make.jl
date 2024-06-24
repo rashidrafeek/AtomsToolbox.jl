@@ -4,3 +4,7 @@ makedocs(;
     sitename="AtomsToolbox.jl",
     # modules = [AtomsToolbox]
 )
+
+deploydocs(
+    repo = "github.com/rashidrafeek/AtomsToolbox.jl.git",
+)
