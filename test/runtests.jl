@@ -41,7 +41,7 @@ using AtomsIO
         end
 
         @testset "distance_matrix" begin
-            @test isapprox(distance_matrix(si_primitive), [0.0; 2.35719;; 2.35719; 0.0]u"Å"; atol=1e-5u"Å")
+            @test isapprox(distance_matrix(si_primitive), [0.0 2.35719; 2.35719 0.0]u"Å"; atol=1e-5u"Å")
         end
 
         @testset "cell_parameters" begin
