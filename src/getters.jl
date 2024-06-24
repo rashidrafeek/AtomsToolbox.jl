@@ -307,6 +307,11 @@ end
 @inline cell_matrix(sys::AbstractSystem) = reduce(hcat, bounding_box(sys))
 # lu is required as unitful matrices are erroring without it
 # when the cell matrix is diagonal
+"""
+    volume(sys::AbstractSystem)
+
+Obtain the volume of the given system.
+"""
 volume(sys::AbstractSystem) = det(lu(cell_matrix(sys)))
 
 # 
