@@ -56,15 +56,17 @@ end
 
 Get the distance between atoms with indices `at1` and `at2`.
 """
-function distance(system::AbstractSystem, at1, at2; pbc=all(periodicity(system)))
+function distance(system::AbstractSystem, at1::Int, at2::Int; pbc=all(periodicity(system)))
     pos1 = position(system, at1)
     pos2 = position(system, at2)
+
+    return distance(system, pos1, pos2; pbc)
+end
+function distance(
+        system::AbstractSystem, pos1::T, pos2::U; pbc=all(periodicity(system))
+    ) where {T <: AbstractVector{<:Unitful.Length}, U <: AbstractVector{<:Unitful.Length}}
     if pbc
-        cell = reduce(hcat, bounding_box(system))'
-        icell = inv(cell)
-        frpos1 = pos1' * icell
-        frpos2 = pos2' * icell
-        dists = pbc_shortest_vectors(cell, frpos1, frpos2, Val(true), Val(false))
+        dists = pbc_shortest_vectors(system, pos1, pos2, Val(true), Val(false))
         dist = only(dists)
     else
         dist = euclidean(pos1, pos2)
@@ -81,11 +83,7 @@ number of atoms in the given `system`.
 """
 function distance_matrix(system::AbstractSystem; pbc=all(periodicity(system)))
     if pbc
-        cell = reduce(hcat, bounding_box(system))'
-        pos = reduce(hcat, position(system))'
-        frpos = pos * inv(cell)
-
-        dists = pbc_shortest_vectors(cell, frpos, Val(true), Val(false))
+        dists = pbc_shortest_vectors(system, position(system), Val(true), Val(false))
     else
         dists = pairwise(Euclidean(), position(system))
     end
@@ -103,6 +101,12 @@ function angle(system::AbstractSystem, at1::Int, at2::Int, at3::Int; pbc=all(per
     pos1 = position(system, at1)
     pos2 = position(system, at2)
     pos3 = position(system, at3)
+
+    return angle(system, pos1, pos2, pos3; pbc)
+end
+function angle(
+        system::AbstractSystem, pos1::T, pos2::T, pos3::T; pbc=all(periodicity(system))
+    ) where {T <: AbstractVector{<:Unitful.Length}}
     if pbc
         cell = reduce(hcat, bounding_box(system))'
         icell = inv(cell)
@@ -116,9 +120,63 @@ function angle(system::AbstractSystem, at1::Int, at2::Int, at3::Int; pbc=all(per
         vec2 = pos2 - pos3
     end
 
-    ang = acosd((vec1 ⋅ vec2)/(norm(vec1)*norm(vec2)))u"°"
+    cos_ang = (vec1 ⋅ vec2)/(norm(vec1)*norm(vec2))
+    ang = abs(cos_ang) <= one(cos_ang) ? acosd(cos_ang)u"°" : _slow_acosd(cos_ang)u"°"
+    # ang = acosd(cos_ang)u"°"
 
     return ang
+end
+# For edge case when x >= 1. See https://discourse.julialang.org/t/linearalgebra-unstable-floating-point-operations/45581/5
+@noinline _slow_acosd(x) = x ≈ 1 ? zero(x) : x ≈ -1 ? one(x)*180 : acosd(x)
+
+"""
+    dihedral(system::AbstractSystem, at1, at2, at3, at4)
+
+Get the angle between vectors connecting atoms with indices `at2`-`at1` and 
+`at2`-`at3`.
+
+ Source: Blondel and Karplus, J. Comp. Chem., Vol. 17, No. 9, 1
+   132-1 141 (1 996).
+"""
+function dihedral(system::AbstractSystem, at1::Int, at2::Int, at3::Int, at4::Int; pbc=all(periodicity(system)))
+    pos1 = position(system, at1)
+    pos2 = position(system, at2)
+    pos3 = position(system, at3)
+    pos4 = position(system, at4)
+
+    return dihedral(system, pos1, pos2, pos3, pos4; pbc)
+end
+function dihedral(
+        system::AbstractSystem, pos1::T, pos2::T, pos3::T, pos4::T; pbc=all(periodicity(system))
+    ) where {T <: AbstractVector{<:Unitful.Length}}
+    if pbc
+        cell = reduce(hcat, bounding_box(system))'
+        icell = inv(cell)
+        frpos1 = pos1' * icell
+        frpos2 = pos2' * icell
+        frpos3 = pos3' * icell
+        frpos4 = pos4' * icell
+        vec0 = -pbc_shortest_vectors(cell, frpos3, frpos2)[1,1,:]  # Axis
+        vec1 = pbc_shortest_vectors(cell, frpos2, frpos1)[1,1,:]
+        vec2 = pbc_shortest_vectors(cell, frpos4, frpos3)[1,1,:]
+        p1 = vec1 × vec0
+        p2 = vec0 × vec2
+    else
+        vec1 = pos2 - pos1
+        vec2 = pos2 - pos3
+    end
+    cross_p1p2 = p1 × p2
+
+    sin_ang = (cross_p1p2 ⋅ vec0)/(norm(p1)*norm(p2)*norm(vec0))
+    cos_ang = (p1 ⋅ p2)/(norm(p1)*norm(p2))
+
+    ang = atand(sin_ang, cos_ang)u"°"
+
+    # if ang < 0.0u"°"
+    #     return 360u"°" + ang
+    # else
+    #     return ang
+    # end
 end
 
 """
@@ -214,6 +272,7 @@ function scaled_position(sys::AbstractSystem)
 
     Vector.(eachrow(frpos))
 end
+scaled_position(sys::AbstractSystem, index) = scaled_position(sys[index], cell_matrix(sys))
 function scaled_position(atom::Atom, cellmat)
     frpos = position(atom)' * inv(cellmat')
 
@@ -225,7 +284,9 @@ end
 # 
 
 @inline cell_matrix(sys::AbstractSystem) = reduce(hcat, bounding_box(sys))
-volume(sys::AbstractSystem) = det(cell_matrix(sys))
+# lu is required as unitful matrices are erroring without it
+# when the cell matrix is diagonal
+volume(sys::AbstractSystem) = det(lu(cell_matrix(sys)))
 
 # 
 # Generic utils

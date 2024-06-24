@@ -23,6 +23,37 @@ function dot_2d_mod(a,b)
     return out
 end
 
+"""
+    pbc_shortest_vectors(
+        system::AbstractSystem, pos1::T, pos2::T, 
+        return_dists::Val{RD}=Val(false), return_vects::Val{RV}=Val(true)
+    ) where {T <: AbstractVector{<: Unitful.Length}, RD, RV}
+
+Obtain the shortest vectors between position vectors, `pos1` and `pos2`,
+taking into account PBC of the given `system`.
+"""
+function pbc_shortest_vectors(
+        system::AbstractSystem, pos1::T, pos2::U,
+        return_dists::Val{RD}=Val(false), return_vects::Val{RV}=Val(true)
+    ) where {T <: AbstractVector{<: Unitful.Length}, U <: AbstractVector{<: Unitful.Length}, RD, RV}
+    cell = reduce(hcat, bounding_box(system))'
+    icell = inv(cell)
+    frpos1 = pos1' * icell
+    frpos2 = pos2' * icell
+
+    return pbc_shortest_vectors(cell, frpos1, frpos2, return_dists, return_vects)
+end
+function pbc_shortest_vectors(
+        system::AbstractSystem, posvec::T,
+        return_dists::Val{RD}=Val(false), 
+        return_vects::Val{RV}=Val(true)
+    ) where {T <: Vector{<: AbstractVector{<: Unitful.Length}}, RD, RV}
+    cell = reduce(hcat, bounding_box(system))'
+    pos = reduce(hcat, posvec)'
+    frpos = pos * inv(cell)
+
+    return pbc_shortest_vectors(cell, frpos, return_dists, return_vects)
+end
 function pbc_shortest_vectors(
         lattice::AbstractArray, 
         fcoords1::AbstractArray, fcoords2::AbstractArray,
