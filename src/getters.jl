@@ -180,13 +180,13 @@ function dihedral(
         frpos2 = pos2' * icell
         frpos3 = pos3' * icell
         frpos4 = pos4' * icell
-        vec1 = pbc_shortest_vectors(cell, frpos3, frpos4)[1,1,:]  # Axis
+        vec1 = pbc_shortest_vectors(cell, frpos1, frpos2)[1,1,:]  # Axis
         vec2 = pbc_shortest_vectors(cell, frpos2, frpos3)[1,1,:]
-        vec3 = pbc_shortest_vectors(cell, frpos1, frpos2)[1,1,:]
+        vec3 = pbc_shortest_vectors(cell, frpos3, frpos4)[1,1,:]
     else
-        vec1 = pos3 - pos4
-        vec2 = pos2 - pos3
-        vec3 = pos1 - pos2
+        vec1 = pos2 - pos1
+        vec2 = pos3 - pos2
+        vec3 = pos4 - pos3
     end
     p23 = vec2 × vec3
     p12 = vec1 × vec2

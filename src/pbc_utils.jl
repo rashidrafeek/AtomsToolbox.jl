@@ -25,6 +25,10 @@ end
 
 """
     pbc_shortest_vectors(
+        system::AbstractSystem, at1::Int, at2::Int,
+        return_dists::Val{RD}=Val(false), return_vects::Val{RV}=Val(true)
+    ) where {RD, RV}
+    pbc_shortest_vectors(
         system::AbstractSystem, pos1::T, pos2::T, 
         return_dists::Val{RD}=Val(false), return_vects::Val{RV}=Val(true)
     ) where {T <: AbstractVector{<: Unitful.Length}, RD, RV}
@@ -32,6 +36,15 @@ end
 Obtain the shortest vectors between position vectors, `pos1` and `pos2`,
 taking into account PBC of the given `system`.
 """
+function pbc_shortest_vectors(
+        system::AbstractSystem, at1::Int, at2::Int,
+        return_dists::Val{RD}=Val(false), return_vects::Val{RV}=Val(true)
+    ) where {RD, RV}
+    pos1 = position(system, at1)
+    pos2 = position(system, at2)
+
+    return pbc_shortest_vectors(system, pos1, pos2, return_dists, return_vects)[1,1,:]
+end
 function pbc_shortest_vectors(
         system::AbstractSystem, pos1::T, pos2::U,
         return_dists::Val{RD}=Val(false), return_vects::Val{RV}=Val(true)

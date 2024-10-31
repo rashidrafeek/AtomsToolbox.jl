@@ -33,10 +33,9 @@ using AtomsIO
             @test angle(si, 3, 2, 5; pbc=false) ≈ 58.51784589u"°"
         end
 
-        # This needs to be verified for pbc=true. Seems inconsistent with ASE
         @testset "dihedral" begin
             @test dihedral(si, 1,5,2,6; pbc=false) ≈ 0.0u"°" atol=1e-8u"°"
-            @test dihedral(si, 5,6,1,4) ≈ 60.0u"°" atol=1e-8u"°"
+            @test dihedral(si, 5,6,1,4) ≈ -60.0u"°" atol=1e-8u"°"
             @test dihedral(si, 5,6,1,4; pbc=false) ≈ 30.0u"°" atol=1e-8u"°"
         end
 
