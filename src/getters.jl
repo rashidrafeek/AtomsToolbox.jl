@@ -294,7 +294,7 @@ function scaled_position(sys::AbstractSystem)
     Vector.(eachrow(frpos))
 end
 scaled_position(sys::AbstractSystem, index) = scaled_position(sys[index], cell_matrix(sys))
-function scaled_position(atom::Atom, cellmat)
+function scaled_position(atom::Union{Atom,AtomView}, cellmat)
     frpos = position(atom)' * inv(cellmat')
 
     frpos'
