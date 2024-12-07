@@ -17,7 +17,7 @@ include("pbc_utils.jl")
 
 Obtain the cell lengths as a Vector, [a,b,c].
 """
-cell_lengths(sys::AbstractSystem) = norm.(bounding_box(sys))
+cell_lengths(sys::AbstractSystem) = norm.(cell_vectors(sys))
 
 """
     cell_parameters(sys::AbstractSystem)
@@ -25,7 +25,7 @@ cell_lengths(sys::AbstractSystem) = norm.(bounding_box(sys))
 Obtain the cell lengths and angles as a Vector, [a,b,c,α,β,γ].
 """
 function cell_parameters(sys::AbstractSystem)
-    av,bv,cv = bounding_box(sys)
+    av,bv,cv = cell_vectors(sys)
     a,b,c = norm.((av,bv,cv))
     
     α = acosd((bv⋅cv)/(b*c))u"°"
@@ -41,7 +41,7 @@ end
 Obtain the cell angles as a Vector, [α,β,γ].
 """
 function cell_angles(sys::AbstractSystem)
-    av,bv,cv = bounding_box(sys)
+    av,bv,cv = cell_vectors(sys)
     a,b,c = norm.((av,bv,cv))
     
     α = acosd((bv⋅cv)/(b*c))u"°"
@@ -83,9 +83,9 @@ number of atoms in the given `system`.
 """
 function distance_matrix(system::AbstractSystem; pbc=all(periodicity(system)))
     if pbc
-        dists = pbc_shortest_vectors(system, position(system), Val(true), Val(false))
+        dists = pbc_shortest_vectors(system, position(system, :), Val(true), Val(false))
     else
-        dists = pairwise(Euclidean(), position(system))
+        dists = pairwise(Euclidean(), position(system, :))
     end
 
     return dists
@@ -108,7 +108,7 @@ function angle(
         system::AbstractSystem, pos1::T, pos2::T, pos3::T; pbc=all(periodicity(system))
     ) where {T <: AbstractVector{<:Unitful.Length}}
     if pbc
-        cell = reduce(hcat, bounding_box(system))'
+        cell = reduce(hcat, cell_vectors(system))'
         icell = inv(cell)
         frpos1 = pos1' * icell
         frpos2 = pos2' * icell
@@ -149,7 +149,7 @@ function dihedral(
     # Source: Blondel and Karplus, J. Comp. Chem., Vol. 17, No. 9, 1
     #   132-1 141 (1 996).
     # if pbc
-    #     cell = reduce(hcat, bounding_box(system))'
+    #     cell = reduce(hcat, cell_vectors(system))'
     #     icell = inv(cell)
     #     frpos1 = pos1' * icell
     #     frpos2 = pos2' * icell
@@ -174,7 +174,7 @@ function dihedral(
     
     # Obtained from pymatgen
     if pbc
-        cell = reduce(hcat, bounding_box(system))'
+        cell = reduce(hcat, cell_vectors(system))'
         icell = inv(cell)
         frpos1 = pos1' * icell
         frpos2 = pos2' * icell
@@ -289,12 +289,12 @@ matrix for the given system or `atom`.
 """
 function scaled_position(sys::AbstractSystem)
     cellmat = cell_matrix(sys)
-    frpos = reduce(hcat, position(sys))' * inv(cellmat')
+    frpos = reduce(hcat, position(sys, :))' * inv(cellmat')
 
     Vector.(eachrow(frpos))
 end
 scaled_position(sys::AbstractSystem, index) = scaled_position(sys[index], cell_matrix(sys))
-function scaled_position(atom::Atom, cellmat)
+function scaled_position(atom::Union{Atom,AtomView}, cellmat)
     frpos = position(atom)' * inv(cellmat')
 
     frpos'
@@ -304,7 +304,7 @@ end
 # Cell utils
 # 
 
-@inline cell_matrix(sys::AbstractSystem) = reduce(hcat, bounding_box(sys))
+@inline cell_matrix(sys::AbstractSystem) = reduce(hcat, cell_vectors(sys))
 # lu is required as unitful matrices are erroring without it
 # when the cell matrix is diagonal
 """

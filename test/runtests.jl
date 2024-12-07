@@ -20,7 +20,7 @@ using AtomsIO
             @test distance(si_primitive, 1, 2) ≈ 2.35719227u"Å"
             @test distance(si_primitive, 1, 2; pbc=false) ≈ 7.07157681u"Å"
 
-            box = bounding_box(si_primitive)
+            box = cell_vectors(si_primitive)
             for i in 1:3
                 @test distance(si_primitive, zeros(3)u"Å", box[i]) ≈ 0.0u"Å" atol=1e-8u"Å"
             end

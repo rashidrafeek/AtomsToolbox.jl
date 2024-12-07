@@ -1,7 +1,7 @@
 name = "AtomsToolbox"
 uuid = "f386ec8f-7408-45ea-aa1c-e80969af901e"
 authors = ["Rashid Rafeek <rashidrafeek@gmail.com> and contributors"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 AtomsBase = "a963bdd2-2df7-4f54-a1ee-49d51e6be12a"
@@ -13,13 +13,13 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
-AtomsBase = "0.3, 0.4"
+AtomsBase = "0.5"
 PeriodicTable = "1"
 StaticArrays = "1"
 Graphs = "1"
 Distances = "0.10"
 Unitful = "1"
-julia = "1.6"
+julia = "1.9"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

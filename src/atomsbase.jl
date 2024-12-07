@@ -15,10 +15,10 @@
 # function Base.getindex(system::AbstractSystem, range::AbstractVector)
 #     particles = collect(system)
 #     return _getconstructor(system)(particles[range],
-#                                    bounding_box(system),
-#                                    boundary_conditions(system))
+#                                    cell_vectors(system),
+#                                    periodicity(system))
 #     # _getconstructor(system)(
-#     #     bounding_box(system), boundary_conditions(system), 
+#     #     cell_vectors(system), periodicity(system), 
 #     #     position(system)[range], atomic_symbol(system)[range],
 #     #     atomic_number(system)[range], atomic_mass(system)[range])
 # end

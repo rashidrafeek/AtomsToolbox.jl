@@ -1,8 +1,8 @@
 function _getdefaultdata(system::AbstractSystem)
     particles = collect(system)
     positions = position(system)
-    box = bounding_box(system)
-    bc = boundary_conditions(system)
+    box = cell_vectors(system)
+    bc = periodicity(system)
 
     return particles, positions, box, bc
 end
@@ -15,9 +15,9 @@ system.
 """
 # function transformpositions(f::Function, system::AbstractSystem)
 #     positions = map(f, position(system))
-#     cell = bounding_box(system)
+#     cell = cell_vectors(system)
 #     at = species(system)
-#     bc = boundary_conditions(system)
+#     bc = periodicity(system)
 #     
 #     typeof(system)(cell, positions, at)
 # end
@@ -76,16 +76,16 @@ function supercell(system::AbstractSystem, supercellvec::Vector{Int}; sorted=fal
     end
 
     system_props = Dict{Symbol, Any}()
-    # All system properties except bounding_box is copied to the new system
+    # All system properties except cell_vectors is copied to the new system
     for (k,v) in pairs(system)
-        if k != :bounding_box
+        if k != :cell_vectors
             system_props[k] = v
         end
     end
     
     cellmat = cell_matrix(system)
     newcellmat = cellmat .* supercellvec'
-    system_props[:bounding_box] = collect(eachcol(newcellmat))
+    system_props[:cell_vectors] = collect(eachcol(newcellmat))
 
     particles = collect(system)
     newparticles = copy(particles)
