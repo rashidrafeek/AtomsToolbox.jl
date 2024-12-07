@@ -49,7 +49,7 @@ function pbc_shortest_vectors(
         system::AbstractSystem, pos1::T, pos2::U,
         return_dists::Val{RD}=Val(false), return_vects::Val{RV}=Val(true)
     ) where {T <: AbstractVector{<: Unitful.Length}, U <: AbstractVector{<: Unitful.Length}, RD, RV}
-    cell = reduce(hcat, bounding_box(system))'
+    cell = reduce(hcat, cell_vectors(system))'
     icell = inv(cell)
     frpos1 = pos1' * icell
     frpos2 = pos2' * icell
@@ -61,7 +61,7 @@ function pbc_shortest_vectors(
         return_dists::Val{RD}=Val(false), 
         return_vects::Val{RV}=Val(true)
     ) where {T <: Vector{<: AbstractVector{<: Unitful.Length}}, RD, RV}
-    cell = reduce(hcat, bounding_box(system))'
+    cell = reduce(hcat, cell_vectors(system))'
     pos = reduce(hcat, posvec)'
     frpos = pos * inv(cell)
 

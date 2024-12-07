@@ -11,8 +11,7 @@ using AtomsBase: AbstractSystem,
                  atomic_number,
                  atomic_symbol,
                  atomic_mass,
-                 bounding_box,
-                 boundary_conditions,
+                 cell_vectors,
                  periodicity
 using Unitful: Unitful, ustrip, @u_str, unit
 import Graphs

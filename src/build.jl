@@ -8,13 +8,13 @@ function interpolate_systems(sys1::FastSystem, sys2::FastSystem, nimg::Int)
     particles2 = collect(sys2)
     pos1 = position(sys1)
     pos2 = position(sys2)
-    bcs = boundary_conditions(sys1)
-    box = bounding_box(sys1)
+    bcs = periodicity(sys1)
+    box = cell_vectors(sys1)
     syms, nums, masses = atomic_symbol.(particles1),
                          atomic_number.(particles1),
                          atomic_mass.(particles1)
 
-    if !(box == bounding_box(sys2))
+    if !(box == cell_vectors(sys2))
         error("Can't interpolate systems with different cells.")
     end
 
