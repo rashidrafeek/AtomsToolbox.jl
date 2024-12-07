@@ -1,14 +1,3 @@
-# Workaround for Unitful StaticMatrix not working.
-# See: https://github.com/PainterQubits/Unitful.jl/issues/538
-function Base.inv(x::StaticMatrix{N,M,T}) where {N,M,T <: Unitful.AbstractQuantity}
-    m = inv(ustrip.(x))
-    iq = eltype(m)
-    reinterpret(
-        Unitful.Quantity{iq, inv(Unitful.dimension(T)), typeof(inv(unit(T)))}, 
-        m
-    )
-end 
-
 # Functions to find shortest distance accounting for PBC, from pymatgen.
 include("pbc_utils.jl")
 

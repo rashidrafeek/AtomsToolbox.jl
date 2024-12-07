@@ -2,7 +2,8 @@ module AtomsToolbox
 
 using Distances: Distances, pairwise, euclidean, peuclidean,
                  Euclidean, PeriodicEuclidean
-using AtomsBase: AbstractSystem,
+using AtomsBase: AtomsBase,
+                 AbstractSystem,
                  FastSystem,
                  FlexibleSystem,
                  Atom,
@@ -12,12 +13,17 @@ using AtomsBase: AbstractSystem,
                  atomic_symbol,
                  atomic_mass,
                  cell_vectors,
-                 periodicity
+                 periodicity,
+                 species
 using Unitful: Unitful, ustrip, @u_str, unit
 import Graphs
 using LinearAlgebra: LinearAlgebra, ⋅, det, norm, lu, ×
 using StaticArrays: StaticMatrix, Size
 import Base: angle, sort # To extend for AbstractSystem 
+
+# Some type piracy to deal with other packages
+# Should be upstreamed or removed eventually
+include("piracy.jl")
 
 # Constants
 include("constants.jl")
