@@ -5,6 +5,43 @@ const images_view = permutedims(reduce(hcat,
                    [[a,b,c] for (a,b,c) in Iterators.product(-1:1, -1:1, -1:1)][:])
                )
 
+function pbc_shortest_vector(system::AbstractSystem, at1::Int, at2::Int)
+    pos1 = position(system, at1)
+    pos2 = position(system, at2)
+
+    return pbc_shortest_vector(system, pos1, pos2)
+end
+function pbc_shortest_vector(system::AbstractSystem, pos1::AbstractVector, pos2::AbstractVector)
+    diff = pos2 - pos1
+    cell = cell_matrix(system)
+
+    return pbc_shortest_vector(diff, cell)
+end
+function pbc_shortest_vector(diff::AbstractVector, cell::AbstractMatrix)
+    cell_inv = inv(cell)
+    # Convert to fractional coordinates
+    frac = cell_inv * diff
+    
+    # For each component, find the image that minimizes the distance
+    # Check -1, 0, +1 translations in each direction
+    min_dist = Inf*oneunit(eltype(diff))
+    min_image = diff
+    
+    for i in -1:1, j in -1:1, k in -1:1
+        shift = SVector(i, j, k)
+        trial_frac = frac + shift
+        trial_cart = cell * trial_frac
+        # dist = trial_cart ⋅ trial_cart  # squared distance
+        dist = norm(trial_cart)  # distance
+        if dist < min_dist
+            min_dist = dist
+            min_image = trial_cart
+        end
+    end
+    
+    return min_image
+end
+
 function dot_2d_mod(a,b)
     I = size(a)[1]
     J = size(b)[2]

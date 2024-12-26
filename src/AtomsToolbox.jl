@@ -18,7 +18,7 @@ using AtomsBase: AtomsBase,
 using Unitful: Unitful, ustrip, @u_str, unit
 import Graphs
 using LinearAlgebra: LinearAlgebra, ⋅, det, norm, lu, ×
-using StaticArrays: StaticMatrix, Size
+using StaticArrays: StaticMatrix, SVector, Size
 import Base: angle, sort # To extend for AbstractSystem 
 
 # Some type piracy to deal with other packages
