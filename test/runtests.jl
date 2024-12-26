@@ -2,6 +2,7 @@ using Test
 using AtomsToolbox
 using AtomsBase, Unitful
 using AtomsIO
+using StaticArrays: SVector
 
 @testset "AtomsToolbox.jl" begin
     # Si primitive crystal 
@@ -68,4 +69,38 @@ using AtomsIO
         end
     end
 
+    @testset "PBC" begin
+        # Define a simple cubic cell with side length 3 Å.
+        box = (
+            [3.0, 0.0, 0.0]u"Å", 
+            [0.0, 3.0, 0.0]u"Å", 
+            [0.0, 0.0, 3.0]u"Å"
+        )
+
+        # Create a small system with two atoms:
+        #    - First at [0, 0, 0] Å
+        #    - Second at [2.5, 2.5, 2.5] Å
+        # We expect pbc_shortest_vector to produce [-0.5, -0.5, -0.5] Å 
+        # as the minimal image distance from the first to second atom.
+        atom1 = Atom(:X, [0.0, 0.0, 0.0]u"Å")
+        atom2 = Atom(:X, [2.5, 2.5, 2.5]u"Å")
+
+        # Build a FlexibleSystem (from AtomsBase) with periodic boundary conditions.
+        test_sys = FlexibleSystem(
+            [atom1, atom2]; 
+            cell_vectors = box, 
+            periodicity = (true, true, true)
+        )
+
+        @testset "Two-atom cubic system" begin
+            vec = AtomsToolbox.pbc_shortest_vector(test_sys, 1, 2)
+            @test vec ≈ SVector(-0.5, -0.5, -0.5)u"Å" atol=1e-10u"Å"
+
+            # Also test the version that accepts explicit positions:
+            pos1 = [0.0, 0.0, 0.0]u"Å"
+            pos2 = [2.5, 2.5, 2.5]u"Å"
+            vec2 = AtomsToolbox.pbc_shortest_vector(test_sys, pos1, pos2)
+            @test vec2 ≈ SVector(-0.5, -0.5, -0.5)u"Å" atol=1e-10u"Å"
+        end
+    end
 end

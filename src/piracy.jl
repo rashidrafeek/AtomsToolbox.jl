@@ -10,6 +10,6 @@ function Base.inv(x::StaticMatrix{N,M,T}) where {N,M,T <: Unitful.AbstractQuanti
 end 
 
 # These were removed in the AtomsBase 0.4 update
-Base.position(sys::AbstractSystem) = position.(sys, :)
+Base.position(sys::AbstractSystem) = position.(Ref(sys), 1:length(sys))
 AtomsBase.atomic_symbol(sys::AbstractSystem) = atomic_symbol.(species(sys, :))
 AtomsBase.atomic_number(sys::AbstractSystem) = atomic_number.(species(sys, :))
