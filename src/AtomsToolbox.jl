@@ -40,7 +40,8 @@ export distance,
        cell_lengths,
        cell_angles,
        cell_parameters,
-       scaled_position
+       scaled_position,
+       cartesian_position
 include("getters.jl")
 
 # Functions to transform `AbstractSystem`s

@@ -283,10 +283,26 @@ function scaled_position(sys::AbstractSystem)
     Vector.(eachrow(frpos))
 end
 scaled_position(sys::AbstractSystem, index) = scaled_position(sys[index], cell_matrix(sys))
-function scaled_position(atom::Union{Atom,AtomView}, cellmat)
-    frpos = position(atom)' * inv(cellmat')
+scaled_position(sys::AbstractSystem, pos::AbstractVector) = scaled_position(pos, cell_matrix(sys))
+scaled_position(atom::Union{Atom,AtomView}, cellmat) = scaled_position(position(atom), cellmat)
+function scaled_position(pos::AbstractVector{<:Unitful.Length}, cellmat)
+    frpos = pos' * inv(cellmat')
 
     frpos'
+end
+
+"""
+    cartesian_position(sys::AbstractSystem, pos::AbstractVector)
+    cartesian_position(atom::Atom, cellmat)
+    cartesian_position(pos::AbstractVector, cellmat)
+
+Obtain the Cartesian positions with respect to the cell matrix for the given system, `atom`, or `pos`.
+"""
+cartesian_position(sys::AbstractSystem, pos::AbstractVector) = cartesian_position(pos, cell_matrix(sys))
+cartesian_position(atom::Union{Atom, AtomView}, cellmat) = cartesian_position(position(atom), cellmat)
+function cartesian_position(pos::AbstractVector{<:Real}, cellmat)
+    cart_pos = pos' * cellmat'  # Convert fractional positions to Cartesian coordinates
+    cart_pos'
 end
 
 #
