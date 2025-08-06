@@ -39,25 +39,19 @@ end
 
 Wrap all the atoms in the given `system` into the cell and return the wrapped
 system. 
-
-!!! warning
-    Currently only works for orthogonal boxes.
 """
-function wrap(system::AbstractSystem)
-    origin = [0.0, 0.0, 0.0]u"Å"
-    cell = cell_lengths(system)
-    f = posvec -> (ifelse.((origin .<= posvec .<= cell),
-                           posvec,
-                           posvec .+ (cell .* floor.((cell .- posvec) ./ cell))))
+function wrap(system)
+    # 1) fractional (scaled) coordinates
+    fracs = scaled_position(system)
 
-    # cellmat = getcellmatrix(system)'
-    # icell = inv(cellmat)
-    # f = function (posvec)
-    #     frpos = posvec * icell
-    #     frposincell = sign.(frpos) .* getindex.(modf.(frpos),1)
-    #     return frposincell*cellmat'
-    # end
-    return transformpositions(f, system)
+    # 2) wrap each fractional triplet componentwise
+    wrapped_fracs = [(f .- floor.(f)) for f in fracs]
+
+    # 3) back to Cartesian
+    newpos = cartesian_position.(Ref(system), wrapped_fracs)
+    particles = Atom.(atomic_symbol.(system), newpos)
+
+    FlexibleSystem(system; particles)
 end
 
 """
