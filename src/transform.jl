@@ -53,6 +53,13 @@ function wrap(system)
 
     FlexibleSystem(system; particles)
 end
+function wrap_position(sys, pos)
+    f = scaled_position(sys, pos)
+    wrapped_f = f .- floor.(f)
+    wrapped_pos = cartesian_position(sys, wrapped_f)
+
+    return wrapped_pos
+end
 
 """
     supercell(system::AbstractSystem, supercellvec::Vector{Int}; sorted=false)
@@ -152,4 +159,94 @@ function sort(system::AbstractSystem; by=x->atomic_number(x), rev=false)
     atoms = collect(system)
     sortedatoms = sort(atoms; by, rev)
     return FlexibleSystem(sortedatoms; pairs(system)...)
+end
+
+"""
+    reorder_new_system_by_reference(ref_sys, new_sys; tol=0.5u"Å")
+
+- `ref_sys`: the original "reference" system (N atoms).
+- `new_sys`: a modified system with M (MA) atoms added, so total N+M atoms.
+
+Returns:
+- A new PeriodicSystem with the **first N atoms** in the **same order** as `ref_sys`
+  (matched by element and position, within `tol` distance),
+- Followed by any unmatched atoms from `new_sys` (i.e., the newly added ones).
+
+This ensures a 1-to-1 index correspondence for the old atoms between `ref_sys` and
+the reordered `new_sys`.
+"""
+function reorder_new_system_by_reference(
+    ref_sys::AbstractSystem,
+    new_sys::AbstractSystem;
+    tol = 0.5u"Å"
+)
+    # Extract relevant data for reference system
+    ref_atoms = collect(ref_sys)
+    ref_positions = position.(ref_atoms)
+    ref_symbols   = atomic_symbol.(ref_atoms)
+
+    # Extract data for new system
+    new_atoms = collect(new_sys)
+    new_positions = position.(new_atoms)
+    new_symbols   = atomic_symbol.(new_atoms)
+
+    # Keep track of atoms which are used up
+    used = falses(length(new_atoms))
+
+    # Helper function to find the closest new-atom index for a given ref-atom
+    function find_closest_match(ref_sym, ref_pos; tol=tol)
+        best_idx = nothing
+        best_dist = Inf
+        for (j, usedj) in enumerate(used)
+            if !usedj && (new_symbols[j] == ref_sym)
+                # same element => candidate
+                # d = norm(ustrip.(u"Å", new_positions[j]) .- ustrip.(u"Å", ref_pos))
+                # d = ustrip(u"Å", distance(ref_sys, new_positions[j], ref_pos))
+                d = ustrip(u"Å", norm(AtomsToolbox.pbc_shortest_vector(ref_sys, new_positions[j], ref_pos)))
+                if d < best_dist
+                    best_dist = d
+                    best_idx = j
+                end
+            end
+        end
+        if best_idx !== nothing && (isnothing(tol) || best_dist < ustrip(u"Å", tol))
+            return best_idx
+        else
+            return nothing  # no suitable match found
+        end
+    end
+
+    # Build array of new-system indices in the correct order
+    matched_indices = Vector{Int}(undef, length(ref_atoms))
+
+    # For each reference atom in order, find a matching new-atom
+    for i in eachindex(ref_atoms)
+        idx = find_closest_match(ref_symbols[i], ref_positions[i])
+        if idx === nothing
+            error("Could not find a match in new_sys for reference atom $i ($(ref_symbols[i])) within tolerance $tol")
+        end
+        matched_indices[i] = idx
+        used[idx] = true
+    end
+
+    # Any new-atom not used in matching must be a newly added MA
+    unmatched_indices = findall(!=(true), used)
+
+    if !isempty(unmatched_indices) && !append_if_unmatched
+        error("No match found for atoms: $(unmatched_indices). Set `append_if_unmatched` to append the atoms to the end.")
+    else
+        final_indices = vcat(matched_indices, unmatched_indices)
+    end
+
+    # List of Atoms in order
+    reordered_atoms = Atom[]
+    for idx in final_indices
+        push!(reordered_atoms, new_atoms[idx])
+    end
+
+    return periodic_system(
+        reordered_atoms,
+        cell_vectors(new_sys);
+        periodicity=periodicity(new_sys)
+    )
 end

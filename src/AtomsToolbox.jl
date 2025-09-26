@@ -14,7 +14,8 @@ using AtomsBase: AtomsBase,
                  atomic_mass,
                  cell_vectors,
                  periodicity,
-                 species
+                 species,
+                 periodic_system
 using Unitful: Unitful, ustrip, @u_str, unit
 import Graphs
 using LinearAlgebra: LinearAlgebra, ⋅, det, norm, lu, ×
